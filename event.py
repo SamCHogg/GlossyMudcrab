@@ -1,5 +1,7 @@
 from datetime import datetime
 
+import discord
+
 import config
 from dacite import from_dict
 from dataclasses import dataclass, asdict
@@ -69,6 +71,9 @@ class Event(object):
         self._id = _id
         collection.insert_one(asdict(self))
 
+    def is_creator(self, user: discord.User):
+        return user.id == self.creator.id
+
 
 class AlreadySignedUpException(Exception):
     role: str
@@ -86,7 +91,7 @@ class EventNotFoundException(Exception):
     pass
 
 
-def add_tank(event: Event, member: event_roster.Member) -> object:
+def add_tank(event: Event, member: event_roster.Member) -> Event:
     if len(event.roster.tanks) >= event.roster.tank_limit:
         raise RosterFullException("")
 
@@ -105,7 +110,7 @@ def add_tank(event: Event, member: event_roster.Member) -> object:
     return event.from_db(_id=event._id)
 
 
-def add_healer(event: Event, member: event_roster.Member) -> object:
+def add_healer(event: Event, member: event_roster.Member) -> Event:
     if len(event.roster.healers) >= event.roster.healer_limit:
         raise RosterFullException("")
 
@@ -124,7 +129,7 @@ def add_healer(event: Event, member: event_roster.Member) -> object:
     return event.from_db(_id=event._id)
 
 
-def add_dps(event: Event, member: event_roster.Member) -> object:
+def add_dps(event: Event, member: event_roster.Member) -> Event:
     if len(event.roster.dps) >= event.roster.dps_limit:
         raise RosterFullException("")
 
@@ -142,7 +147,7 @@ def add_dps(event: Event, member: event_roster.Member) -> object:
     return event.from_db(_id=event._id)
 
 
-def remove_tank(event: Event, member: event_roster.Member) -> (object, bool):
+def remove_tank(event: Event, member: event_roster.Member) -> (Event, bool):
     for tank in event.roster.tanks:
         if member == tank:
             result = collection.update_one(
@@ -157,7 +162,7 @@ def remove_tank(event: Event, member: event_roster.Member) -> (object, bool):
     return event, False
 
 
-def remove_healer(event: Event, member: event_roster.Member) -> (object, bool):
+def remove_healer(event: Event, member: event_roster.Member) -> (Event, bool):
     for healer in event.roster.healers:
         if member == healer:
             result = collection.update_one(
@@ -172,7 +177,7 @@ def remove_healer(event: Event, member: event_roster.Member) -> (object, bool):
     return event, False
 
 
-def remove_dps(event: Event, member: event_roster.Member) -> (object, bool):
+def remove_dps(event: Event, member: event_roster.Member) -> (Event, bool):
     for dps in event.roster.dps:
         if member == dps:
             result = collection.update_one(
@@ -185,3 +190,40 @@ def remove_dps(event: Event, member: event_roster.Member) -> (object, bool):
             return event.from_db(_id=event._id), True
 
     return event, False
+
+
+def edit_name(event: Event, name: str) -> Event:
+    result = collection.update_one(
+        {"_id": event._id},
+        {"$set": {"name": name}}
+    )
+
+    if result.modified_count != 1:
+        raise EventNotFoundException("")
+
+    return event.from_db(_id=event._id)
+
+
+def edit_description(event: Event, description: str) -> Event:
+    result = collection.update_one(
+        {"_id": event._id},
+        {"$set": {"description": description}}
+    )
+
+    if result.modified_count != 1:
+        raise EventNotFoundException("")
+
+    return event.from_db(_id=event._id)
+
+
+def edit_when(event: Event, when: str) -> Event:
+    result = collection.update_one(
+        {"_id": event._id},
+        {"$set": {"when": when}}
+    )
+
+    if result.modified_count != 1:
+        raise EventNotFoundException("")
+
+    return event.from_db(_id=event._id)
+

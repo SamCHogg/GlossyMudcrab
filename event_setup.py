@@ -45,7 +45,15 @@ class Field(object):
 
 
 class NameField(Field):
-    name = "Name"
+    text = "Enter the **name** for this event (50 character limit):"
+
+    def validate(self, msg):
+        if len(msg.content) > 50:
+            return False, f"Invalid input, the name must be less than 50 characters.\n{self.text}"
+        return True, ""
+
+
+class IntroField(NameField):
     short_text = "Enter the **name** for this event (50 character limit):"
     text = f"**Event setup**\nYou can type *cancel* at any point during this process to cancel the event creation.\n\n{short_text} "
 
@@ -94,6 +102,30 @@ class RosterField(Field):
         return None
 
 
+class EditOptionsField(Field):
+    name = "Edit"
+    event_name = ""
+    options = """Select a field to edit:
+**1.** Name
+**2.** Description
+**3.** Time"""
+
+    def __init__(self, event_name: str):
+        self.event_name = event_name
+        self.text = f"**Edit {event_name}**\nYou can type *cancel* at any point during this process to cancel the event creation.\n\n{self.options}"
+
+    def validate(self, msg):
+        if not msg.content.isnumeric():
+            return False, f"Invalid input, you must choose a number.\n{self.options}"
+        choice = int(msg.content)
+        if choice < 1 or choice > 3:
+            return False, f"Invalid input, you must choose one of the following.\n{self.options}"
+        return True, ""
+
+    def handler(self, msg):
+        return int(msg.content)
+
+
 async def interactive_setup(client, message):
     original = message.channel
     dm = message.author.dm_channel
@@ -106,7 +138,7 @@ async def interactive_setup(client, message):
     except (discord.Forbidden, discord.NotFound):
         pass
 
-    name = await NameField().input(client, dm)
+    name = await IntroField().input(client, dm)
     if name is None:
         return
 
@@ -135,3 +167,39 @@ async def interactive_setup(client, message):
     await eventMessage.add_reaction(emojis.edit)
 
     await dm.send(f"Event '{name}' created in {original.mention}")
+
+
+async def edit_event(client, reaction: discord.Reaction, user: discord.Member):
+    this_event = event.Event.from_db(reaction.message.id)
+    if not this_event.is_creator(user):
+        return
+
+    dm = user.dm_channel
+    if dm is None:
+        dm = await user.create_dm()
+
+    choice = await EditOptionsField(this_event.name).input(client, dm)
+    if choice is None:
+        return
+
+    if choice == 1:
+        name = await NameField().input(client, dm)
+        if name is None:
+            return
+        this_event = event.edit_name(this_event, name)
+    elif choice == 2:
+        desc = await DescriptionField().input(client, dm)
+        if desc is None:
+            return
+        this_event = event.edit_description(this_event, desc)
+    elif choice == 3:
+        when = await WhenField().input(client, dm)
+        if when is None:
+            return
+        this_event = event.edit_when(this_event, when)
+    else:
+        return
+
+    await reaction.message.edit(content=this_event.render())
+
+    await dm.send(f"Event '{this_event.name}' has been edited")

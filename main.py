@@ -52,6 +52,9 @@ async def on_reaction_add(reaction: discord.Reaction, user: discord.Member):
         await add_role(reaction, user, event.add_healer)
     elif reaction.emoji == emojis.dps:
         await add_role(reaction, user, event.add_dps)
+    elif reaction.emoji == emojis.edit:
+        await remove_reaction(reaction, user)
+        await event_setup.edit_event(client, reaction, user)
     else:
         await remove_reaction(reaction, user)
 
