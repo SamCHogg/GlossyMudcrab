@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import config
 from dacite import from_dict
 from dataclasses import dataclass, asdict
@@ -27,6 +29,9 @@ event_template = Template("""
 cluster = MongoClient(config.db_address)
 db = cluster[config.db_name]
 collection = db["Events"]
+# Setup automatic deletion of events
+# Deleted after 1 month
+collection.create_index("expireAfter", expireAfterSeconds=1*60*60*24*30)
 
 
 @dataclass
@@ -37,6 +42,7 @@ class Event(object):
     when: str
     roster: event_roster.Roster
     creator: event_roster.Member
+    expireAfter: datetime
 
     @classmethod
     def from_db(cls, _id):
@@ -53,6 +59,7 @@ class Event(object):
             when=when,
             roster=roster,
             creator=creator,
+            expireAfter=datetime.utcnow()
         )
 
     def render(self):
