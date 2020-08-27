@@ -169,8 +169,8 @@ async def interactive_setup(client, message):
     await dm.send(f"Event '{name}' created in {original.mention}")
 
 
-async def edit_event(client, reaction: discord.Reaction, user: discord.Member):
-    this_event = event.Event.from_db(reaction.message.id)
+async def edit_event(client, message: discord.Message, user: discord.Member):
+    this_event = event.Event.from_db(message.id)
     if not this_event.is_creator(user):
         return
 
@@ -200,6 +200,6 @@ async def edit_event(client, reaction: discord.Reaction, user: discord.Member):
     else:
         return
 
-    await reaction.message.edit(content=this_event.render())
+    await message.edit(content=this_event.render())
 
     await dm.send(f"Event '{this_event.name}' has been edited")
