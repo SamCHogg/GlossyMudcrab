@@ -31,7 +31,7 @@ db = cluster[config.db_name]
 collection = db["Events"]
 # Setup automatic deletion of events
 # Deleted after 1 month
-collection.create_index("expireAfter", expireAfterSeconds=1*60*60*24*30)
+collection.create_index("createdAt", expireAfterSeconds=1*60*60*24*30)
 
 
 @dataclass
@@ -42,7 +42,7 @@ class Event(object):
     when: str
     roster: event_roster.Roster
     creator: event_roster.Member
-    expireAfter: datetime
+    createdAt: datetime
 
     @classmethod
     def from_db(cls, _id):
@@ -59,7 +59,7 @@ class Event(object):
             when=when,
             roster=roster,
             creator=creator,
-            expireAfter=datetime.utcnow()
+            createdAt=datetime.utcnow()
         )
 
     def render(self):
