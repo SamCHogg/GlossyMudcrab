@@ -23,6 +23,7 @@ client = discord.Client()
 
 @client.event
 async def on_ready():
+    await client.change_presence(activity=discord.Game(name=f'{config.prefix}trial'))
     print('We have logged in as {0.user}'.format(client))
 
 
