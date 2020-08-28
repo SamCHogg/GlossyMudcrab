@@ -54,11 +54,13 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
         return
 
     if payload.emoji.name == emojis.tank:
-        await add_role(message, user, payload.emoji, event.add_tank)
+        await add_role(message, user, payload.emoji.name, event.add_tank)
     elif payload.emoji.name == emojis.healer:
-        await add_role(message, user, payload.emoji, event.add_healer)
-    elif payload.emoji.name == emojis.dps:
-        await add_role(message, user, payload.emoji, event.add_dps)
+        await add_role(message, user, payload.emoji.name, event.add_healer)
+    elif payload.emoji.name == emojis.stam_dps:
+        await add_role(message, user, payload.emoji.name, event.add_dps)
+    elif payload.emoji.name == emojis.mag_dps:
+        await add_role(message, user, payload.emoji.name, event.add_dps)
     elif payload.emoji.name == emojis.edit:
         await remove_reaction(message, user, payload.emoji)
         await event_setup.edit_event(client, message, user)
@@ -69,7 +71,6 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
 @client.event
 async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
     user = client.get_user(payload.user_id)
-    # Ignore reactions from the client
     if user is None or user == client.user:
         return
 
@@ -82,23 +83,30 @@ async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
         return
 
     if payload.emoji.name == emojis.tank:
-        await remove_role(message, user, payload.emoji, event.remove_tank)
+        await remove_role(message, user, payload.emoji.name, event.remove_tank)
     elif payload.emoji.name == emojis.healer:
-        await remove_role(message, user, payload.emoji, event.remove_healer)
-    elif payload.emoji.name == emojis.dps:
-        await remove_role(message, user, payload.emoji, event.remove_dps)
+        await remove_role(message, user, payload.emoji.name, event.remove_healer)
+    elif payload.emoji.name == emojis.stam_dps:
+        await remove_role(message, user, payload.emoji.name, event.remove_dps)
+    elif payload.emoji.name == emojis.mag_dps:
+        await remove_role(message, user, payload.emoji.name, event.remove_dps)
 
 
 async def add_role(message, user, emoji, add_func):
     this_event = event.Event.from_db(message.id)
     try:
-        this_event = add_func(this_event, roster.Member.from_discord_member(user))
+        this_event = add_func(this_event, roster.Member.from_discord_member(user, emoji))
     except event.RosterFullException:
         await remove_reaction(message, user, emoji)
         await message.channel.send(f"We don't need anymore {emoji} {user.mention}")
     except event.AlreadySignedUpException as e:
+        # If the existing role is the same we just continue
+        if e.role != emoji:
+            await remove_reaction(message, user, emoji)
+            await message.channel.send(f"{user.mention} you are already signed up as {e.role}")
+    except event.EventNotFoundException:
         await remove_reaction(message, user, emoji)
-        await message.channel.send(f"{user.mention} you are already signed up as {e.role}")
+        await message.channel.send(f"{user.mention} I was unable to add you as {emoji}")
     else:
         await message.edit(content=this_event.render())
         await message.channel.send(f"{user.name} joined as {emoji}")
@@ -106,7 +114,7 @@ async def add_role(message, user, emoji, add_func):
 
 async def remove_role(message, user, emoji, remove_fun):
     this_event = event.Event.from_db(message.id)
-    this_event, changed = remove_fun(this_event, roster.Member.from_discord_member(user))
+    this_event, changed = remove_fun(this_event, roster.Member.from_discord_member(user, emoji))
     if changed:
         await message.edit(content=this_event.render())
         await message.channel.send(f"{user.name} has signed off as {emoji}")

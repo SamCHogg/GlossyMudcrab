@@ -164,7 +164,7 @@ async def interactive_setup(client, message):
     if roster is None:
         return
 
-    creator = roster.Member.from_discord_member(message.author)
+    creator = roster.Member.from_discord_member(message.author, emojis.crown)
 
     newEvent = event.Event.new(name, description, when, emptyRoster, creator)
 
@@ -173,7 +173,8 @@ async def interactive_setup(client, message):
 
     await eventMessage.add_reaction(emojis.tank)
     await eventMessage.add_reaction(emojis.healer)
-    await eventMessage.add_reaction(emojis.dps)
+    await eventMessage.add_reaction(emojis.stam_dps)
+    await eventMessage.add_reaction(emojis.mag_dps)
     await eventMessage.add_reaction(emojis.edit)
 
     await eventMessage.pin()

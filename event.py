@@ -11,6 +11,8 @@ import roster as event_roster
 from pymongo import MongoClient
 from jinja2 import Template
 
+from exceptions import RosterFullException, AlreadySignedUpException, EventNotFoundException
+
 event_template = Template("""
 {{ event.name }} scheduled for {{ event.when }}
 
@@ -24,7 +26,8 @@ event_template = Template("""
 **React with:**
 {{ emojis.tank }} to sign in as Tank
 {{ emojis.healer }} to sign in as Healer
-{{ emojis.dps }} to sign in as Damage Dealer
+{{ emojis.stam_dps }} to sign in as Stamina DPS
+{{ emojis.mag_dps }} to sign in as Magicka Dps
 {{ emojis.edit }} To edit the trial ({{ emojis.crown }} only)
 """)
 
@@ -75,24 +78,8 @@ class Event(object):
         return user.id == self.creator.id
 
 
-class AlreadySignedUpException(Exception):
-    role: str
-
-    def __init__(self, message, role):
-        self.role = role
-        super().__init__(message)
-
-
-class RosterFullException(Exception):
-    pass
-
-
-class EventNotFoundException(Exception):
-    pass
-
-
 def add_tank(event: Event, member: event_roster.Member) -> Event:
-    if len(event.roster.tanks) >= event.roster.tank_limit:
+    if event.roster.tanks.is_full():
         raise RosterFullException("")
 
     contains, role = event.roster.contains_member(member)
@@ -101,7 +88,7 @@ def add_tank(event: Event, member: event_roster.Member) -> Event:
 
     result = collection.update_one(
         {"_id": event._id},
-        {"$push": {"roster.tanks": asdict(member)}}
+        {"$push": {"roster.tanks.members": asdict(member)}}
     )
 
     if result.modified_count != 1:
@@ -111,7 +98,7 @@ def add_tank(event: Event, member: event_roster.Member) -> Event:
 
 
 def add_healer(event: Event, member: event_roster.Member) -> Event:
-    if len(event.roster.healers) >= event.roster.healer_limit:
+    if event.roster.healers.is_full():
         raise RosterFullException("")
 
     contains, role = event.roster.contains_member(member)
@@ -120,7 +107,7 @@ def add_healer(event: Event, member: event_roster.Member) -> Event:
 
     result = collection.update_one(
         {"_id": event._id},
-        {"$push": {"roster.healers": asdict(member)}}
+        {"$push": {"roster.healers.members": asdict(member)}}
     )
 
     if result.modified_count != 1:
@@ -130,7 +117,7 @@ def add_healer(event: Event, member: event_roster.Member) -> Event:
 
 
 def add_dps(event: Event, member: event_roster.Member) -> Event:
-    if len(event.roster.dps) >= event.roster.dps_limit:
+    if event.roster.dps.is_full():
         raise RosterFullException("")
 
     contains, role = event.roster.contains_member(member)
@@ -139,7 +126,7 @@ def add_dps(event: Event, member: event_roster.Member) -> Event:
 
     result = collection.update_one(
         {"_id": event._id},
-        {"$push": {"roster.dps": asdict(member)}}
+        {"$push": {"roster.dps.members": asdict(member)}}
     )
     if result.modified_count != 1:
         raise EventNotFoundException("")
@@ -148,46 +135,46 @@ def add_dps(event: Event, member: event_roster.Member) -> Event:
 
 
 def remove_tank(event: Event, member: event_roster.Member) -> (Event, bool):
-    for tank in event.roster.tanks:
-        if member == tank:
-            result = collection.update_one(
-                {"_id": event._id},
-                {"$pull": {"roster.tanks": {"id": member.id}}}
-            )
-            if result.modified_count != 1:
-                raise EventNotFoundException("")
+    contains, icon = event.roster.tanks.exactly_contains(member)
+    if contains:
+        result = collection.update_one(
+            {"_id": event._id},
+            {"$pull": {"roster.tanks.members": {"id": member.id}}}
+        )
+        if result.modified_count != 1:
+            return event, False
 
-            return event.from_db(_id=event._id), True
+        return event.from_db(_id=event._id), True
 
     return event, False
 
 
 def remove_healer(event: Event, member: event_roster.Member) -> (Event, bool):
-    for healer in event.roster.healers:
-        if member == healer:
-            result = collection.update_one(
-                {"_id": event._id},
-                {"$pull": {"roster.healers": {"id": member.id}}}
-            )
-            if result.modified_count != 1:
-                raise EventNotFoundException("")
+    contains, icon = event.roster.healers.exactly_contains(member)
+    if contains:
+        result = collection.update_one(
+            {"_id": event._id},
+            {"$pull": {"roster.healers.members": {"id": member.id}}}
+        )
+        if result.modified_count != 1:
+            return event, False
 
-            return event.from_db(_id=event._id), True
+        return event.from_db(_id=event._id), True
 
     return event, False
 
 
 def remove_dps(event: Event, member: event_roster.Member) -> (Event, bool):
-    for dps in event.roster.dps:
-        if member == dps:
-            result = collection.update_one(
-                {"_id": event._id},
-                {"$pull": {"roster.dps": {"id": member.id}}}
-            )
-            if result.modified_count != 1:
-                raise EventNotFoundException("")
+    contains, icon = event.roster.dps.exactly_contains(member)
+    if contains:
+        result = collection.update_one(
+            {"_id": event._id},
+            {"$pull": {"roster.dps.members": {"id": member.id}}}
+        )
+        if result.modified_count != 1:
+            return event, False
 
-            return event.from_db(_id=event._id), True
+        return event.from_db(_id=event._id), True
 
     return event, False
 

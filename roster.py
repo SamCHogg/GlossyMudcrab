@@ -12,76 +12,122 @@ class Member(object):
     id: int
     name: str
     mention: str
+    icon: str
 
     @classmethod
-    def new(cls, id, name, mention):
+    def new(cls, id, name, mention, icon):
         return cls(
             id=id,
             name=name,
-            mention=mention
+            mention=mention,
+            icon=icon
         )
 
     @classmethod
-    def from_discord_member(cls, discord_member: discord.Member):
+    def from_discord_member(cls, discord_member: discord.Member, icon: str):
         return cls(
             id=discord_member.id,
             name=discord_member.name,
-            mention=discord_member.mention
+            mention=discord_member.mention,
+            icon=icon,
         )
 
-    def __eq__(self, other):
-        if isinstance(other, Member):
-            return self.id == other.id
-        return False
+
+@dataclass
+class MemberList(object):
+    members: List[Member]
+    limit: int
+    default_icon: str
+
+    @classmethod
+    def new(cls, limit: int, default_icon: str):
+        return cls(
+            members=[],
+            limit=limit,
+            default_icon=default_icon
+        )
+
+    def is_full(self) -> bool:
+        return len(self.members) >= self.limit
+
+    # Check if a member is in the list
+    def contains(self, member: Member) -> (bool, str):
+        for signed_up in self.members:
+            if member.id == signed_up.id:
+                return True, signed_up.icon
+        return False, ""
+
+    # Check if a member is in the list and has the same icon
+    def exactly_contains(self, member: Member) -> (bool, str):
+        for signed_up in self.members:
+            if member.id == signed_up.id and member.icon == signed_up.icon:
+                return True, signed_up.icon
+        return False, ""
+
+    def to_list(self) -> list:
+        member_list = []
+        for i in range(self.limit):
+            try:
+                member_list.append(self.members[i])
+            except IndexError:
+                member_list.append(Member.new("", "", "", self.default_icon))
+        return member_list
+
+
+@dataclass
+class DPSMemberList(MemberList):
+    stam_limit: int = -1
+    mag_limit: int = -1
+
+    @classmethod
+    def new_with_separate_limits(cls, default_icon: str, stam_limit: int, mag_limit: int):
+        return cls(
+            members=[],
+            limit=stam_limit+mag_limit,
+            default_icon=default_icon,
+            stam_limit=stam_limit,
+            mag_limit=mag_limit,
+        )
 
 
 roster_template = Template("""
-{% for i in range(roster.tank_limit) -%}
-    {{ emojis.tank }}: {% if roster.tanks[i] %}{{ roster.tanks[i].mention }}{% endif %}
-{% endfor -%}
-{% for i in range(roster.healer_limit) -%}
-     {{ emojis.healer }}: {% if roster.healers[i] %}{{ roster.healers[i].mention }}{% endif %}
-{% endfor -%}
-{% for i in range(roster.dps_limit) -%}
-    {{ emojis.dps }}: {% if roster.dps[i] %}{{ roster.dps[i].mention }}{% endif %}
+{% for member in roster -%}
+    {{ member.icon }}: {{ member.mention }}
 {% endfor -%}
 """)
 
 
 @dataclass
-class Roster(dict):
-    tanks: List[Member]
-    tank_limit: int
-    healers: List[Member]
-    healer_limit: int
-    dps: List[Member]
-    dps_limit: int
+class Roster(object):
+    tanks: MemberList
+    healers: MemberList
+    dps: MemberList
 
     @classmethod
     def new(cls, tanks: int, healers: int, dps: int):
         return cls(
-            tanks=[],
-            tank_limit=tanks,
-            healers=[],
-            healer_limit=healers,
-            dps=[],
-            dps_limit=dps
+            tanks=MemberList.new(tanks, emojis.tank),
+            healers=MemberList.new(healers, emojis.healer),
+            dps=DPSMemberList.new(dps, f"{emojis.dps}"),
         )
 
+    def to_list(self):
+        return self.tanks.to_list() + self.healers.to_list() + self.dps.to_list()
+
     def render(self):
-        return roster_template.render(roster=self, emojis=emojis.emojis)
+        return roster_template.render(roster=self.to_list())
 
-    def contains_member(self, member) -> (bool, str):
-        for tank in self.tanks:
-            if member == tank:
-                return True, emojis.tank
+    def contains_member(self, member: Member) -> (bool, str):
+        contains, icon = self.tanks.contains(member)
+        if contains:
+            return contains, icon
 
-        for healer in self.healers:
-            if member == healer:
-                return True, emojis.healer
+        contains, icon = self.healers.contains(member)
+        if contains:
+            return contains, icon
 
-        for dps in self.dps:
-            if member == dps:
-                return True, emojis.dps
+        contains, icon = self.dps.contains(member)
+        if contains:
+            return contains, icon
 
         return False, ""
