@@ -21,9 +21,17 @@ else:
 client = discord.Client()
 
 
+async def help_command(message):
+    help_message = f"""Hello \N{WAVING HAND SIGN}
+    
+You can create a new trial event with **{config.prefix}trial**, I will message you to ask more questions about the event.
+    """
+    await message.channel.send(content=help_message)
+
+
 @client.event
 async def on_ready():
-    await client.change_presence(activity=discord.Game(name=f'{config.prefix}trial'))
+    await client.change_presence(activity=discord.Game(name=f'{config.prefix}mudcrab'))
     print('We have logged in as {0.user}'.format(client))
 
 
@@ -38,6 +46,8 @@ async def on_message(message):
     command = message.content[1:]
     if command.startswith('trial'):
         await event_setup.interactive_setup(client, message)
+    elif command.startswith('mudcrab'):
+        await help_command(message)
 
 
 @client.event
