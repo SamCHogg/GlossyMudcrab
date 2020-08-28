@@ -27,6 +27,7 @@ async def help_command(message):
 You can create a new trial event with **{config.prefix}trial**, I will message you to ask more questions about the event.
     """
     await message.channel.send(content=help_message)
+    await message.delete()
 
 
 @client.event
