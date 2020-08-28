@@ -19,8 +19,8 @@ class Field(object):
         except asyncio.exceptions.TimeoutError:
             await dm.send("Waited too long for response.")
             return "", True
-        if msg.content == "cancel":
-            await dm.send("Okay! Setup canceled.")
+        if msg.content.lower() == "cancel":
+            await dm.send("Okay \N{CRYING FACE}")
             return "", True
         return msg, False
 
@@ -45,32 +45,42 @@ class Field(object):
 
 
 class NameField(Field):
-    text = "Enter the **name** for this event (50 character limit):"
+    text = "Enter the **name** for this event:"
 
     def validate(self, msg):
-        if len(msg.content) > 50:
-            return False, f"Invalid input, the name must be less than 50 characters.\n{self.text}"
+        if len(msg.content) > 30:
+            return False, f"Invalid input, the name must be less than 30 characters.\n{self.text}"
         return True, ""
 
 
 class IntroField(NameField):
-    short_text = "Enter the **name** for this event (50 character limit):"
+    short_text = "Enter the **name** for this event:"
     text = f"**Event setup**\nYou can type *cancel* at any point during this process to cancel the event creation.\n\n{short_text} "
 
     def validate(self, msg):
-        if len(msg.content) > 50:
-            return False, f"Invalid input, the name must be less than 50 characters.\n{self.short_text}"
+        if len(msg.content) > 30:
+            return False, f"Invalid input, the name must be less than 30 characters.\n{self.short_text}"
         return True, ""
 
 
 class DescriptionField(Field):
     name = "Description"
-    text = "Enter this event's **description**:"
+    text = "Enter a **description** for this event:"
+
+    def validate(self, msg):
+        if len(msg.content) > 200:
+            return False, f"Invalid input, the description must be less than 200 characters.\n{self.text}"
+        return True, ""
 
 
 class WhenField(Field):
     name = "When"
     text = "Enter the **time** and **date** for this event:"
+
+    def validate(self, msg):
+        if len(msg.content) > 50:
+            return False, f"Invalid input, must be less than 50 characters.\n{self.text}"
+        return True, ""
 
 
 class RosterField(Field):
@@ -165,6 +175,8 @@ async def interactive_setup(client, message):
     await eventMessage.add_reaction(emojis.healer)
     await eventMessage.add_reaction(emojis.dps)
     await eventMessage.add_reaction(emojis.edit)
+
+    await eventMessage.pin()
 
     await dm.send(f"Event '{name}' created in {original.mention}")
 
