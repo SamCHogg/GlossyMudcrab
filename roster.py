@@ -64,13 +64,16 @@ class MemberList(object):
                 return True, signed_up.icon
         return False, ""
 
-    def to_list(self) -> list:
+    def to_list(self, fill_empty=True) -> List[Member]:
         member_list = []
         for i in range(self.limit):
             try:
                 member_list.append(self.members[i])
             except IndexError:
-                member_list.append(Member.new("", "", "", self.default_icon))
+                if fill_empty:
+                    member_list.append(Member.new("", "", "", self.default_icon))
+                else:
+                    break
         return member_list
 
 
@@ -96,6 +99,12 @@ roster_template = Template("""
 {% endfor -%}
 """)
 
+roster_template_numbered = Template("""
+{% for member in roster -%}
+    **{{loop.index}}.** {{ member.icon }}: {{ member.mention }}
+{% endfor -%}
+""")
+
 
 @dataclass
 class Roster(object):
@@ -111,11 +120,18 @@ class Roster(object):
             dps=DPSMemberList.new(dps, f"{emojis.dps}"),
         )
 
-    def to_list(self):
-        return self.tanks.to_list() + self.healers.to_list() + self.dps.to_list()
+    def to_list(self, fill_empty=True) -> List[Member]:
+        return \
+            self.tanks.to_list(fill_empty=fill_empty) + \
+            self.healers.to_list(fill_empty=fill_empty) + \
+            self.dps.to_list(fill_empty=fill_empty)
 
-    def render(self):
-        return roster_template.render(roster=self.to_list())
+    def render(self, numbered=False, fill_empty=True):
+        if numbered:
+            template = roster_template_numbered
+        else:
+            template = roster_template
+        return template.render(roster=self.to_list(fill_empty=fill_empty))
 
     def contains_member(self, member: Member) -> (bool, str):
         contains, icon = self.tanks.contains(member)

@@ -2,13 +2,14 @@ import asyncio
 import discord
 
 import emojis
+import reactions
 import roster
 import event
 
 
 class Field(object):
-    name = "Override"
-    text = "Override"
+    name = "NOT IMPLEMENTED"
+    text = "NOT IMPLEMENTED"
 
     async def __wait_for_response(self, client, dm):
         def check(m):
@@ -118,7 +119,8 @@ class EditOptionsField(Field):
     options = """Select a field to edit:
 **1.** Name
 **2.** Description
-**3.** Time"""
+**3.** Time
+**4.** Roster"""
 
     def __init__(self, event_name: str):
         self.event_name = event_name
@@ -128,12 +130,34 @@ class EditOptionsField(Field):
         if not msg.content.isnumeric():
             return False, f"Invalid input, you must choose a number.\n{self.options}"
         choice = int(msg.content)
-        if choice < 1 or choice > 3:
+        if choice < 1 or choice > 4:
             return False, f"Invalid input, you must choose one of the following.\n{self.options}"
         return True, ""
 
     def handler(self, msg):
         return int(msg.content)
+
+
+class EditRosterField(Field):
+    name = "EditRoster"
+    this_event: event.Event
+    text: str
+
+    def __init__(self, this_event: event.Event):
+        self.this_event = this_event
+        self.text = f"Select someone to remove:\n{this_event.roster.render(numbered=True, fill_empty=False)}"
+
+    def validate(self, msg):
+        if not msg.content.isnumeric():
+            return False, f"Invalid input, you must choose a number.\n{self.text}"
+        choice = int(msg.content)
+        if choice < 1 or choice > len(self.this_event.roster.to_list(fill_empty=False)):
+            return False, f"Invalid input, you must choose one of the following.\n{self.text}"
+        return True, ""
+
+    def handler(self, msg):
+        roster_list = self.this_event.roster.to_list(fill_empty=False)
+        return roster_list[int(msg.content)-1]
 
 
 async def interactive_setup(client, message):
@@ -195,24 +219,43 @@ async def edit_event(client, message: discord.Message, user: discord.Member):
     if choice is None:
         return
 
+    # Change name
     if choice == 1:
         name = await NameField().input(client, dm)
         if name is None:
             return
         this_event = event.edit_name(this_event, name)
+        await message.edit(content=this_event.render())
+
+    # Change description
     elif choice == 2:
         desc = await DescriptionField().input(client, dm)
         if desc is None:
             return
         this_event = event.edit_description(this_event, desc)
+        await message.edit(content=this_event.render())
+
+    # Change date or time
     elif choice == 3:
         when = await WhenField().input(client, dm)
         if when is None:
             return
         this_event = event.edit_when(this_event, when)
+        await message.edit(content=this_event.render())
+
+    # Remove someone from the roster
+    elif choice == 4:
+        member = await EditRosterField(this_event).input(client, dm)
+        if member is None:
+            return
+        this_event = event.remove_member(this_event, member)
+        await reactions.remove_reaction(message, member, emojis.tank)
+        await reactions.remove_reaction(message, member, emojis.healer)
+        await reactions.remove_reaction(message, member, emojis.stam_dps)
+        await reactions.remove_reaction(message, member, emojis.mag_dps)
+        await message.edit(content=this_event.render())
+        await message.channel.send(f"{member.name} has been removed from the roster by {this_event.creator.name}")
     else:
         return
-
-    await message.edit(content=this_event.render())
 
     await dm.send(f"Event '{this_event.name}' has been edited")

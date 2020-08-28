@@ -6,6 +6,7 @@ import discord
 import emojis
 import event
 import event_setup
+import reactions
 import roster
 
 # Config.py setup
@@ -62,7 +63,7 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     elif payload.emoji.name == emojis.mag_dps:
         await add_role(message, user, payload.emoji.name, event.add_dps)
     elif payload.emoji.name == emojis.edit:
-        await remove_reaction(message, user, payload.emoji)
+        await reactions.remove_reaction(message, user, payload.emoji)
         await event_setup.edit_event(client, message, user)
     else:
         await message.remove_reaction(payload.emoji, user)
@@ -97,15 +98,15 @@ async def add_role(message, user, emoji, add_func):
     try:
         this_event = add_func(this_event, roster.Member.from_discord_member(user, emoji))
     except event.RosterFullException:
-        await remove_reaction(message, user, emoji)
+        await reactions.remove_reaction(message, user, emoji)
         await message.channel.send(f"We don't need anymore {emoji} {user.mention}")
     except event.AlreadySignedUpException as e:
         # If the existing role is the same we just continue
         if e.role != emoji:
-            await remove_reaction(message, user, emoji)
+            await reactions.remove_reaction(message, user, emoji)
             await message.channel.send(f"{user.mention} you are already signed up as {e.role}")
     except event.EventNotFoundException:
-        await remove_reaction(message, user, emoji)
+        await reactions.remove_reaction(message, user, emoji)
         await message.channel.send(f"{user.mention} I was unable to add you as {emoji}")
     else:
         await message.edit(content=this_event.render())
@@ -118,14 +119,6 @@ async def remove_role(message, user, emoji, remove_fun):
     if changed:
         await message.edit(content=this_event.render())
         await message.channel.send(f"{user.name} has signed off as {emoji}")
-
-
-async def remove_reaction(message, user, emoji):
-    try:
-        await message.remove_reaction(emoji, user)
-    except (discord.Forbidden, discord.NotFound):
-        # Maybe send a message?
-        pass
 
 
 if __name__ == "__main__":

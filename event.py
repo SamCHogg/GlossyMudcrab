@@ -27,7 +27,7 @@ event_template = Template("""
 {{ emojis.tank }} to sign in as Tank
 {{ emojis.healer }} to sign in as Healer
 {{ emojis.stam_dps }} to sign in as Stamina DPS
-{{ emojis.mag_dps }} to sign in as Magicka Dps
+{{ emojis.mag_dps }} to sign in as Magicka DPS
 {{ emojis.edit }} To edit the trial ({{ emojis.crown }} only)
 """)
 
@@ -177,6 +177,13 @@ def remove_dps(event: Event, member: event_roster.Member) -> (Event, bool):
         return event.from_db(_id=event._id), True
 
     return event, False
+
+
+def remove_member(event: Event, member: event_roster.Member) -> Event:
+    event, changed = remove_tank(event, member)
+    event, changed = remove_healer(event, member)
+    event, changed = remove_dps(event, member)
+    return event
 
 
 def edit_name(event: Event, name: str) -> Event:
