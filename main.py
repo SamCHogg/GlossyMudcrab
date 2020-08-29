@@ -142,8 +142,9 @@ async def ping(message: discord.Message, user: discord.Member):
     this_event = event.Event.from_db(message.id)
     if not this_event.is_creator(user):
         return
-    roster = this_event.roster.render(fill_empty=False)
-    await message.channel.send(f"You are being summoned!\n{roster}")
+    if not this_event.roster.is_empty():
+        roster = this_event.roster.render(fill_empty=False)
+        await message.channel.send(f"You are being summoned!\n{roster}")
 
 
 if __name__ == "__main__":
