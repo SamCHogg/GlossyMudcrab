@@ -25,6 +25,8 @@ async def help_command(message):
     help_message = f"""Hello \N{WAVING HAND SIGN}
     
 You can create a new trial event with **{config.prefix}trial**, I will message you to ask more questions about the event.
+
+I'm not complete yet so you may experience issues and find features I don't have yet.
     """
     await message.channel.send(content=help_message)
     await message.delete()
