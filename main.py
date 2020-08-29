@@ -77,6 +77,9 @@ async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     elif payload.emoji.name == emojis.edit:
         await reactions.remove_reaction(message, user, payload.emoji)
         await event_setup.edit_event(client, message, user)
+    elif payload.emoji.name == emojis.ping:
+        await reactions.remove_reaction(message, user, payload.emoji)
+        await ping(message, user)
     else:
         await message.remove_reaction(payload.emoji, user)
 
@@ -131,6 +134,14 @@ async def remove_role(message, user, emoji, remove_fun):
     if changed:
         await message.edit(content=this_event.render())
         await message.channel.send(f"{user.name} has signed off as {emoji}")
+
+
+async def ping(message: discord.Message, user: discord.Member):
+    this_event = event.Event.from_db(message.id)
+    if not this_event.is_creator(user):
+        return
+    roster = this_event.roster.render(fill_empty=False)
+    await message.channel.send(f"You are being summoned!\n{roster}")
 
 
 if __name__ == "__main__":

@@ -76,6 +76,9 @@ class MemberList(object):
                     break
         return member_list
 
+    def is_empty(self) -> bool:
+        return len(self.members) == 0
+
 
 @dataclass
 class DPSMemberList(MemberList):
@@ -147,3 +150,6 @@ class Roster(object):
             return contains, icon
 
         return False, ""
+
+    def is_empty(self) -> bool:
+        return self.tanks.is_empty() and self.healers.is_empty() and self.dps.is_empty()

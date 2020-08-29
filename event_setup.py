@@ -200,6 +200,7 @@ async def interactive_setup(client, message):
     await eventMessage.add_reaction(emojis.stam_dps)
     await eventMessage.add_reaction(emojis.mag_dps)
     await eventMessage.add_reaction(emojis.edit)
+    await eventMessage.add_reaction(emojis.ping)
 
     await eventMessage.pin()
 

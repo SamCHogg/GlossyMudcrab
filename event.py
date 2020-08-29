@@ -28,7 +28,8 @@ event_template = Template("""
 {{ emojis.healer }} to sign in as Healer
 {{ emojis.stam_dps }} to sign in as Stamina DPS
 {{ emojis.mag_dps }} to sign in as Magicka DPS
-{{ emojis.edit }} To edit the trial ({{ emojis.crown }} only)
+{{ emojis.edit }} to edit the trial ({{ emojis.crown }} only)
+{{ emojis.ping }} to ping the roster ({{ emojis.crown }} only)
 """)
 
 cluster = MongoClient(config.db_address)
