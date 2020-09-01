@@ -12,3 +12,11 @@ class RosterFullException(Exception):
 
 class EventNotFoundException(Exception):
     pass
+
+
+class InvalidTrialName(Exception):
+    pass
+
+
+class InvalidRoleName(Exception):
+    pass

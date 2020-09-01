@@ -3,6 +3,7 @@ import sys
 
 import discord
 
+import champion
 import emojis
 import event
 import event_setup
@@ -49,6 +50,8 @@ async def on_message(message):
     command = message.content[1:]
     if command.startswith('trial'):
         await event_setup.interactive_setup(client, message)
+    elif command.startswith('cp'):
+        await champion.handle_cp(message)
     elif command.startswith('mudcrab'):
         await help_command(message)
 
