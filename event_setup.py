@@ -93,6 +93,8 @@ class RosterField(Field):
 **1.** 1 Tank, 2 Healer, 9 DPS
 **2.** 2 Tank, 2 Healer, 8 DPS
 **3.** 3 Tank, 2 Healer, 7 DPS
+**4.** 1 Tank, 1 Healer, 2 DPS
+**5.** 1 Tank, 3 DPS
 **0.** Custom"""
 
     def validate(self, msg):
@@ -101,7 +103,7 @@ class RosterField(Field):
         choice = int(msg.content)
         if choice == 0:
             return False, f"Sorry this is not yet implemented. Choose one of the existing choices!\n{self.text}"
-        if choice < 1 or choice > 3:
+        if choice < 1 or choice > 5:
             return False, f"Invalid input, you must choose one of the following.\n{self.text}"
         return True, ""
 
@@ -113,6 +115,10 @@ class RosterField(Field):
             return roster.Roster.new(tanks=2, healers=2, dps=8)
         elif choice == 3:
             return roster.Roster.new(tanks=3, healers=2, dps=7)
+        elif choice == 4:
+            return roster.Roster.new(tanks=1, healers=1, dps=2)
+        elif choice == 5:
+            return roster.Roster.new(tanks=1, healers=0, dps=3)
         return None
 
 
