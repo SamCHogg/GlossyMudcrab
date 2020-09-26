@@ -276,7 +276,7 @@ builds = [
         "names": ["magden", "magicka warden"],
         "builds": [
             {
-                "name": "Magicka Templar",
+                "name": "Magicka Warden",
                 "blue": [
                     {
                         "name": "Elemental Expert",
@@ -344,7 +344,7 @@ builds = [
         "names": ["magcro", "magicka necromancer", "magicka necro"],
         "builds": [
             {
-                "name": "Magicka Templar",
+                "name": "Magicka Necromancer",
                 "blue": [
                     {
                         "name": "Elemental Expert",
