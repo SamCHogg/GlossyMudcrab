@@ -1,20 +1,36 @@
-from typing import List
-
 import discord
 from jinja2 import Template
 
 import config
-import cp
-import exceptions
+import trial_cp
+import build_cp
+
+available_trials_template = Template("""
+**Trial and Arena Options:**
+{% for trial in trials -%}
+    {{ trial.names.0 }}{{ ", " if not loop.last }}
+{%- endfor -%}
+""")
+
+available_builds_template = Template("""
+**Build Options:**
+{% for build in builds -%}
+    {{ build.names.0 }}{{ ", " if not loop.last }}
+{%- endfor -%}
+""")
 
 
 def help() -> discord.Embed:
-    content = f"""
-To use this command:
-```{config.prefix}cp <Trial/Arena> (<Role>)```
-{available_trials_template.render()}
-{available_roles_template.render()}"""
+    trials = available_trials_template.render(trials=trial_cp.trials)
+    builds = available_builds_template.render(builds=build_cp.builds)
 
+    content = f"""
+**Using the command**
+To show CP allocations for a Trial, Arena or Build use one of the below options:
+```{config.prefix}cp <option>```
+{trials}
+{builds}
+"""
     return discord.Embed(
         colour=discord.Color.red(),
         title="Champion Point Allocation",
@@ -25,156 +41,81 @@ To use this command:
 async def handle_cp(message):
     split = message.content.split()
     length = len(split)
-    embeds = []
-    if length == 1 or length > 3:
-        embeds = [help()]
-    elif length == 2:
-        embeds = create_embed_trial(split[1].lower())
-    elif length == 3:
-        embeds = create_embed_trial(split[1].lower(), split[2].lower())
-
-    for embed in embeds:
-        await message.channel.send(embed=embed)
-
-    return
+    if length == 1:
+        embed = help()
+    else:
+        embed = create_trial_or_build_embed("".join(split[1:]))
+    await message.channel.send(embed=embed)
 
 
-event_template = Template("""
-**The Warrior**
-{% for allocation in red -%}
-{{ allocation.value }} {{ allocation.name }} 
+def create_trial_or_build_embed(s: str) -> discord.Embed:
+    trial, exists = get_trial(s)
+    if exists:
+        return create_embed_trial(trial)
+
+    build, exists = get_build(s)
+    if exists:
+        return create_embed_build(build)
+
+    return help()
+
+
+def get_trial(s: str) -> (dict, bool):
+    for trial in trial_cp.trials:
+        for name in trial["names"]:
+            if name.lower() == s.lower():
+                return trial, True
+    return None, False
+
+
+def get_build(s: str) -> (dict, bool):
+    for build in build_cp.builds:
+        for name in build["names"]:
+            if name.lower() == s.lower():
+                return build, True
+    return None, False
+
+
+trial_role_cp_template = Template("""
+{% for role in roles %}
+    **{{ role.name }}**
+    {% for allocation in role.red -%}
+        {{ allocation.value }} {{ allocation.name }}{{ ", " if not loop.last }}
+    {%- endfor %}
+    
+    {% for allocation in role.green -%}
+        {{ allocation.value }} {{ allocation.name }}{{ ", " if not loop.last }}
+    {%- endfor %}
 {% endfor %}
-
-**The Thief**
-{% for allocation in green -%}
-{{ allocation.value }} {{ allocation.name }} 
-{% endfor -%}
-""")
-
-available_trials_template = Template("""
-Available Trials/Arenas:
-**AA** - Aetherian Archive
-**AS** - Asylum Sanctorium
-**BRP** - Blackrose Prison
-**CR** - Cloudrest
-**DSA** - Dragonstar Arena
-**HoF** - Halls of Fabrication
-**HRC** - Hel Ra Citadel
-**KA** - Kyne's Aegis
-**MA** - Maelstrom Arena
-**MoL** - Maw of Lorkhaj
-**SO** - Sanctum Ophidia
-**SS** - Sunspire
-""")
-
-available_roles_template = Template("""
-Available Roles:
-**Tank** - Main Tank and Off Tank
-**MT** - Main Tank
-**OT** - Off Tank
-**Healer** - Healer
-**DPS** - Magicka and Stamina DPS
-**MDPS** - Magicka DPS
-**SDPS** - Stamina DPS
 """)
 
 
-def create_embed_trial(trial_str: str, role_str: str = None) -> List[discord.Embed]:
-    try:
-        trial = get_trial(trial_str)
-    except exceptions.InvalidTrialName:
-        embed = discord.Embed(
-            colour=discord.Color.red(),
-            title="Invalid Trial/Arena Name",
-            description=available_trials_template.render()
-        )
-        return [embed]
-
-    if role_str is not None:
-        try:
-            roles = get_roles(role_str)
-        except exceptions.InvalidRoleName:
-            embed = discord.Embed(
-                colour=discord.Color.red(),
-                title="Invalid Role Name",
-                description=available_roles_template.render()
-            )
-            return [embed]
-    else:
-        roles = ["mt", "ot", "healer", "magicka", "stamina"]
-
-    roles_cp = []
-    for role in roles:
-        try:
-            roles_cp.append(cp.allocations["trial"][trial][role])
-        except KeyError:
-            pass
-
-    if len(roles_cp) == 0:
-        embed = discord.Embed(
-            colour=discord.Color.red(),
-            title="Invalid Options",
-            description="There is no available CP allocation for this Trial/Arena and Role combination."
-        )
-        return [embed]
-
-    embeds = []
-    for role_cp in roles_cp:
-        for setup in role_cp:
-            embed = discord.Embed(
-                colour=discord.Color.red(),
-                title=setup["title"],
-                description=event_template.render(red=setup["red"], green=setup["green"]),
-                url="https://eso-u.com/champion-points"
-            )
-            embed.set_footer(text="ESO-U.com • Greymoor/Update 26")
-            embeds.append(embed)
-    return embeds
+def create_embed_trial(trial: dict) -> discord.Embed:
+    message = trial_role_cp_template.render(roles=trial["roles"])
+    return create_cp_embed(discord.Color.red(), trial["display_name"], message)
 
 
-def get_trial(trial: str) -> str:
-    if trial in {"aa", "naa", "vaa"}:
-        return "aa"
-    elif trial in {"as", "nas", "vas"}:
-        return "as"
-    elif trial in {"brp", "nbrp", "vbrp"}:
-        return "brp"
-    elif trial in {"cloudrest", "cr", "ncr", "vcr"}:
-        return "cr"
-    elif trial in {"dsa", "ndsa", "vdsa"}:
-        return "dsa"
-    elif trial in {"hof", "nhof", "vhof"}:
-        return "hof"
-    elif trial in {"hrc", "nhrc", "vhrc"}:
-        return "hrc"
-    elif trial in {"ka", "nka", "vka"}:
-        return "ka"
-    elif trial in {"ma", "nma", "vma"}:
-        return "ma"
-    elif trial in {"mol", "nmol", "vmol"}:
-        return "mol"
-    elif trial in {"so", "nso", "vso"}:
-        return "so"
-    elif trial in {"sunspire", "ss", "nss", "vss"}:
-        return "ss"
-    else:
-        raise exceptions.InvalidTrialName()
+build_cp_template = Template("""
+{% for build in builds %}
+    **{{ build.name }}**
+    {% for allocation in build.blue -%}
+        {{ allocation.value }} {{ allocation.name }}{{ ", " if not loop.last }}
+    {%- endfor %}
+{% endfor %}
+""")
 
 
-def get_roles(role: str) -> List[str]:
-    if role in {"tank"}:
-        return ["mt", "ot"]
-    elif role in {"mt"}:
-        return ["mt"]
-    elif role in {"ot"}:
-        return ["ot"]
-    elif role in {"healer"}:
-        return ["healer"]
-    elif role in {"dps"}:
-        return ["magicka", "stamina"]
-    elif role in {"magicka", "mdps", "mag"}:
-        return ["magicka"]
-    elif role in {"stamina", "sdps", "stam"}:
-        return ["stamina"]
-    else:
-        raise exceptions.InvalidRoleName()
+def create_embed_build(build: dict) -> discord.Embed:
+    message = build_cp_template.render(builds=build["builds"])
+    return create_cp_embed(discord.Color.blue(), build["display_name"], message)
+
+
+def create_cp_embed(colour, title, message) -> discord.Embed:
+    embed = discord.Embed(
+        colour=colour,
+        title=title,
+        description=message,
+        url="https://eso-u.com/champion-points"
+    )
+    embed.set_footer(text="ESO-U.com • Stonethorn/Update 27")
+    return embed

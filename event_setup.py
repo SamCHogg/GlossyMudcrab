@@ -6,6 +6,9 @@ import reactions
 import roster
 import event
 
+# How long to wait for a response before timing out
+message_timeout = 300
+
 
 class Field(object):
     name = "NOT IMPLEMENTED"
@@ -16,7 +19,7 @@ class Field(object):
             return m.author != client.user and m.channel.id == dm.id
 
         try:
-            msg = await client.wait_for('message', timeout=60, check=check)
+            msg = await client.wait_for('message', timeout=message_timeout, check=check)
         except asyncio.exceptions.TimeoutError:
             await dm.send("Waited too long for response.")
             return "", True
