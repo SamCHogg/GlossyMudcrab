@@ -8,6 +8,12 @@ import event
 
 # How long to wait for a response before timing out
 message_timeout = 300
+# Maximum length for name of event
+max_name_length = 30
+# Maximum length for the description
+max_desc_length = 1000
+# Maximum length for when
+max_when_length = 50
 
 
 class Field(object):
@@ -52,8 +58,8 @@ class NameField(Field):
     text = "Enter the **name** for this event:"
 
     def validate(self, msg):
-        if len(msg.content) > 30:
-            return False, f"Invalid input, the name must be less than 30 characters.\n{self.text}"
+        if len(msg.content) > max_name_length:
+            return False, f"Invalid input, the name must be less than {max_name_length} characters.\n{self.text}"
         return True, ""
 
 
@@ -62,8 +68,8 @@ class IntroField(NameField):
     text = f"**Event setup**\nYou can type *cancel* at any point during this process to cancel the event creation.\n\n{short_text} "
 
     def validate(self, msg):
-        if len(msg.content) > 30:
-            return False, f"Invalid input, the name must be less than 30 characters.\n{self.short_text}"
+        if len(msg.content) > max_name_length:
+            return False, f"Invalid input, the name must be less than {max_name_length} characters.\n{self.short_text}"
         return True, ""
 
 
@@ -72,8 +78,8 @@ class DescriptionField(Field):
     text = "Enter a **description** for this event:"
 
     def validate(self, msg):
-        if len(msg.content) > 200:
-            return False, f"Invalid input, the description must be less than 200 characters.\n{self.text}"
+        if len(msg.content) > max_desc_length:
+            return False, f"Invalid input, the description must be less than {max_desc_length} characters.\n{self.text}"
         return True, ""
 
 
@@ -82,8 +88,8 @@ class WhenField(Field):
     text = "Enter the **time** and **date** for this event:"
 
     def validate(self, msg):
-        if len(msg.content) > 50:
-            return False, f"Invalid input, must be less than 50 characters.\n{self.text}"
+        if len(msg.content) > max_when_length:
+            return False, f"Invalid input, must be less than {max_when_length} characters.\n{self.text}"
         return True, ""
 
 
