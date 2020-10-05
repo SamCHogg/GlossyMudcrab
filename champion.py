@@ -8,14 +8,14 @@ import build_cp
 available_trials_template = Template("""
 **Trial and Arena Options:**
 {% for trial in trials -%}
-    {{ trial.names.0 }}{{ ", " if not loop.last }}
+{{ trial.names.0 }}{{ ", " if not loop.last }}
 {%- endfor -%}
 """)
 
 available_builds_template = Template("""
 **Build Options:**
 {% for build in builds -%}
-    {{ build.names.0 }}{{ ", " if not loop.last }}
+{{ build.names.0 }}{{ ", " if not loop.last }}
 {%- endfor -%}
 """)
 
@@ -78,14 +78,14 @@ def get_build(s: str) -> (dict, bool):
 
 trial_role_cp_template = Template("""
 {% for role in roles %}
-    **{{ role.name }}**
-    {% for allocation in role.red -%}
-        {{ allocation.value }} {{ allocation.name }}{{ ", " if not loop.last }}
-    {%- endfor %}
+**{{ role.name }}**
+{% for allocation in role.red -%}
+{{ allocation.value }} {{ allocation.name }}{{ ", " if not loop.last }}
+{%- endfor %}
     
-    {% for allocation in role.green -%}
-        {{ allocation.value }} {{ allocation.name }}{{ ", " if not loop.last }}
-    {%- endfor %}
+{% for allocation in role.green -%}
+{{ allocation.value }} {{ allocation.name }}{{ ", " if not loop.last }}
+{%- endfor %}
 {% endfor %}
 """)
 
@@ -97,10 +97,10 @@ def create_embed_trial(trial: dict) -> discord.Embed:
 
 build_cp_template = Template("""
 {% for build in builds %}
-    **{{ build.name }}**
-    {% for allocation in build.blue -%}
-        {{ allocation.value }} {{ allocation.name }}{{ ", " if not loop.last }}
-    {%- endfor %}
+**{{ build.name }}**
+{% for allocation in build.blue -%}
+{{ allocation.value }} {{ allocation.name }}{{ ", " if not loop.last }}
+{%- endfor %}
 {% endfor %}
 """)
 
