@@ -2,6 +2,8 @@
 
 A Discord bot to help organise Trials and Dungeon runs in ESO.
 
+_The CP allocations are not my own, they were sourced from [ESO University](https://eso-u.com/)._
+
 ## Requirements
 
 * [A Discord API Key](https://discordpy.readthedocs.io/en/latest/discord.html)
