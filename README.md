@@ -1,3 +1,3 @@
 # Glossy Mudcrab
 
-A discord bot for ESO Trials.
+A Discord bot to help organise Trials and Dungeon runs in ESO.
