@@ -1,2 +1,3 @@
 # Never want to commit the config file!
-config.py
+.idea
+config-dev.py

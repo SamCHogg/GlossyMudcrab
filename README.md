@@ -12,7 +12,7 @@ _The CP allocations are not my own, they were sourced from [ESO University](http
 
 ## Setup
 
-1. Make a copy of `example_config.py` called `config.py`. Place in here the connection information for MongoDB and the Discord API key.
+1. Set the following environment variables:
+    1. `GLOSSY_DISCORD_TOKEN`
+    2. `GLOSSY_DB_ADDRESS`
 2. Run using `pipenv run python main.py`
-
-You'll likely want to use something like `screen` so that the application doesn't exit when you close the terminal.
